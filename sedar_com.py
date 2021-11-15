@@ -37,19 +37,21 @@ class Handler(Extract, GetPages):
             return None
 
     def getpages(self, searchquery):
-        search_pages_list = list(string.ascii_lowercase)
-        search_pages_list.append('nc')
+        searchquery = searchquery.lower()
         return_links = []
-        for letter in search_pages_list:
-            url = f'https://www.sedar.com/issuers/company_issuers_{letter}_en.htm'
-            tree = self.get_tree(url, headers=self.header, timeout=5)
-            names = self.get_by_xpath(tree, '//li[@class="rt"]/a/text()', return_list=True)
-            links = self.get_by_xpath(tree, '//li[@class="rt"]/a/@href', return_list=True)
-            if links and names:
-                for company in range(len(names)):
-                    if searchquery in names[company]:
-                        return_links.append(self.base_url + links[company])
-            time.sleep(np.random.randint(1, 3))
+        if searchquery[0].isalpha():
+            url = f'https://www.sedar.com/issuers/company_issuers_{searchquery.lower()[0]}_en.htm'
+        elif searchquery[0].isdigit():
+            url = f'https://www.sedar.com/issuers/company_issuers_nc_en.htm'
+        else:
+            return []
+        tree = self.get_tree(url, headers=self.header, timeout=5)
+        names = self.get_by_xpath(tree, '//li[@class="rt"]/a/text()', return_list=True)
+        links = self.get_by_xpath(tree, '//li[@class="rt"]/a/@href', return_list=True)
+        if links and names:
+            for company in range(len(names)):
+                if searchquery in names[company].lower():
+                    return_links.append(self.base_url + links[company])
         return return_links
 
     def get_business_classifier(self, tree):
@@ -142,7 +144,6 @@ class Handler(Extract, GetPages):
             return None
 
     def get_overview(self, link):
-        time.sleep(np.random.randint(1, 3))
         tree = self.get_tree(link, self.header, timeout=5)
         company = {}
         try:
