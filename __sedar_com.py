@@ -7,7 +7,7 @@ if __name__ == '__main__':
 
     a = Handler()
 
-    final_data = a.Execute('aHR0cHM6Ly93d3cuc2VkYXIuY29tL0Rpc3BsYXlQcm9maWxlLmRvP2xhbmc9RU4maXNzdWVyVHlwZT0wMyZpc3N1ZXJObz0wMDA1MjA5Mw==', 'overview', '', '')
+    final_data = a.Execute('Energy', '', '', '')
     print(json.dumps(final_data, indent=4))
 
     elapsed_time = time.time() - start_time

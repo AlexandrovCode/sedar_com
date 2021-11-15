@@ -1,5 +1,9 @@
 import datetime
+import random
+import string
+import time
 
+import numpy as np
 from geopy import Nominatim
 
 from src.bstsouecepkg.extract import Extract
@@ -13,9 +17,9 @@ class Handler(Extract, GetPages):
 
     header = {
         'User-Agent':
-            'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Mobile Safari/537.36',
-        'Accept':
-            'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+            'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36',
+        # 'Accept':
+        #     'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
     }
 
     def get_by_xpath(self, tree, xpath, return_list=False):
@@ -33,12 +37,20 @@ class Handler(Extract, GetPages):
             return None
 
     def getpages(self, searchquery):
-        url = f'https://www.sedar.com/issuers/company_issuers_{searchquery}_en.htm'
-        r = self.get_tree(url, headers=self.header)
-        links = r.xpath('//li[@class="rt"]/a/@href')
-        if links:
-            links = [self.base_url + i for i in links]
-        return links
+        search_pages_list = list(string.ascii_lowercase)
+        search_pages_list.append('nc')
+        return_links = []
+        for letter in search_pages_list:
+            url = f'https://www.sedar.com/issuers/company_issuers_{letter}_en.htm'
+            tree = self.get_tree(url, headers=self.header, timeout=5)
+            names = self.get_by_xpath(tree, '//li[@class="rt"]/a/text()', return_list=True)
+            links = self.get_by_xpath(tree, '//li[@class="rt"]/a/@href', return_list=True)
+            if links and names:
+                for company in range(len(names)):
+                    if searchquery in names[company]:
+                        return_links.append(self.base_url + links[company])
+            time.sleep(np.random.randint(1, 3))
+        return return_links
 
     def get_business_classifier(self, tree):
         business_classifier = self.get_by_xpath(tree,
@@ -130,7 +142,8 @@ class Handler(Extract, GetPages):
             return None
 
     def get_overview(self, link):
-        tree = self.get_tree(link, self.header)
+        time.sleep(np.random.randint(1, 3))
+        tree = self.get_tree(link, self.header, timeout=5)
         company = {}
         try:
             orga_name = self.get_by_xpath(tree,
@@ -144,7 +157,7 @@ class Handler(Extract, GetPages):
                           'bst:email', company)
 
         business_classifier = self.get_business_classifier(tree)
-        if business_classifier: company['bst:businessClassifier'] = business_classifier
+        if business_classifier: company['bst:businessClassifier'] = [business_classifier]
 
         address = self.get_address(tree)
         if address: company['mdaas:RegisteredAddress'] = address
